@@ -10,7 +10,7 @@ import { SITE } from "@/lib/site";
 
 export default function Home() {
   const nav = getNav();
-  const start = nav.find((g) => g.key.startsWith("relationship"))?.items[0]?.href ?? nav[0].items[0].href;
+  const start = nav[0].items[0].href; // first lesson: What is Data Modeling?
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",

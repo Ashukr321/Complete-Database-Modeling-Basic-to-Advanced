@@ -4,7 +4,7 @@
 export const LEARNING_PATH = `flowchart TB
   subgraph S1["Step 1 · Model the data"]
     direction LR
-    A["🔗 Relationships"] --> ER["📐 ER Diagrams"] --> B["🏛️ Entity Design"] --> C["🧩 Schema Patterns"]
+    W["🌱 What is Data Modeling?"] --> A["🔗 Relationships"] --> ER["📐 ER Diagrams"] --> B["🏛️ Entity Design"] --> C["🧩 Schema Patterns"]
   end
   subgraph S2["Step 2 · Make it fast & safe"]
     direction LR

@@ -16,7 +16,8 @@ const CODE_EXT: Record<string, "javascript" | "sql"> = {
 
 /** Sidebar groups in learning order. Folders not listed are appended. */
 export const GROUPS: { key: string; label: string; icon: string }[] = [
-  { key: "README", label: "Overview", icon: "🏠" },
+  { key: "Introduction", label: "Introduction", icon: "🌱" },
+  { key: "README", label: "Overview", icon: "🗺️" },
   { key: "relationship/one_to_one", label: "One-to-One", icon: "🔗" },
   { key: "relationship/one_to_many", label: "One-to-Many", icon: "🔗" },
   { key: "relationship/many_to_one", label: "Many-to-One", icon: "🔗" },

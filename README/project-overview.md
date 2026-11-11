@@ -6,6 +6,9 @@ This folder contains meta-documentation for the **Complete Database Modeling** p
 
 ## 🗺️ Learning Roadmap
 
+### Phase 0: Start Here
+- [ ] [What is Data Modeling?](../Introduction/What-Is-Data-Modeling.md)
+
 ### Phase 1: Foundations
 - [ ] [One-to-One Relationships](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/one_to_one/one-to-one.md)
 - [ ] [One-to-Many Relationships](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/one_to_many/one-to-many.md)

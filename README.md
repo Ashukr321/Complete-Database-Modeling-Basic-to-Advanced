@@ -8,6 +8,10 @@ Welcome to the ultimate guide for database modeling. This project covers everyth
 
 This repository is organized into specialized modules:
 
+### 0. 🌱 Start Here: What is Data Modeling?
+What data modeling is, the problems it solves (redundancy, anomalies, slow queries) and why every backend engineer needs it.
+- **[What is Data Modeling?](Introduction/What-Is-Data-Modeling.md)**
+
 ### 1. 🔗 Relationships
 Detailed guides and implementations for all standard database relationships.
 - **[One-to-One](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/one_to_one)**
@@ -48,11 +52,12 @@ Common mistakes even senior engineers make and how to fix them.
 ---
 
 ## 🚀 How to Use This Guide
-1.  **Start with Relationships**: Understand the fundamental building blocks.
-2.  **Learn the Patterns**: Move beyond basics with senior-level NoSQL strategies.
-3.  **Implement Validation**: Always protect your data integrity.
-4.  **Optimize with Indexing**: Ensure your queries run in milliseconds, not seconds.
-5.  **Review Mistakes**: Learn from others' failures to build better systems.
+1.  **Start with the Introduction**: Know what data modeling is and why it matters.
+2.  **Then Relationships**: Understand the fundamental building blocks.
+3.  **Learn the Patterns**: Move beyond basics with senior-level NoSQL strategies.
+4.  **Implement Validation**: Always protect your data integrity.
+5.  **Optimize with Indexing**: Ensure your queries run in milliseconds, not seconds.
+6.  **Review Mistakes**: Learn from others' failures to build better systems.
 
 ---
 
