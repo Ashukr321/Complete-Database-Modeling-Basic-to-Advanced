@@ -15,29 +15,34 @@ Detailed guides and implementations for all standard database relationships.
 - **[Many-to-One](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/many_to_one)**
 - **[Many-to-Many](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/many_to_many)**
 
-### 2. 🏛️ Entity Design
+### 2. 📐 ER Diagrams
+Every ER diagram symbol (Chen and Crow's Foot) with a worked example.
+- **[ER Diagram Symbols & Notations](ER-Diagrams/README.md)**
+- Topics: *Entities, attributes, keys, cardinality, participation, weak entities, ISA, a full example with SQL.*
+
+### 3. 🏛️ Entity Design
 20+ real-world examples across domains like E-commerce, Social Media, and Healthcare.
 - **[Explore Entity Designs](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Entity-Design)**
 
-### 3. 🧩 Schema Design Patterns
+### 4. 🧩 Schema Design Patterns
 Senior-level patterns specifically for MongoDB performance.
 - **[Design Patterns Guide](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/MongoDB-Schema-Design-Patterns)**
 - Patterns: *Embedding vs Referencing, Bucket, Outlier, Extended Reference.*
 
-### 4. ⚡ Performance & Optimization
+### 5. ⚡ Performance & Optimization
 The technical side of making your database fast.
 - **[Database Indexing](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Database-Indexing)**: ESR Rule, Compound Indexes, Specialized types.
 - **[Normalization vs Denormalization](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Normalization-vs-Denormalization)**: Choosing the right philosophy.
 
-### 5. 🛡️ Data Reliability
+### 6. 🛡️ Data Reliability
 Ensuring your data stays clean and consistent.
 - **[Data Validation](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Data-Validation)**: Mongoose schemas, SQL constraints, and multi-layer strategy.
 
-### 6. 🚫 Professional Pitfalls
+### 7. 🚫 Professional Pitfalls
 Common mistakes even senior engineers make and how to fix them.
 - **[Common Modeling Mistakes](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Common-Data-Modeling-Mistakes)**
 
-### 7. 🛠️ Tooling
+### 8. 🛠️ Tooling
 - **[Recommended Modeling Tools](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/Data-Modeling-Tools)**
 
 ---
