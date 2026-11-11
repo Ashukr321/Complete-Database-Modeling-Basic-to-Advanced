@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for the Docker image (.next/standalone/server.js)
+  output: "standalone",
+
   // ✏️ Add your image domains here
   images: {
     remotePatterns: [

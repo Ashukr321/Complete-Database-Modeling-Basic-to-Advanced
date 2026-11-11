@@ -1,0 +1,13 @@
+services:
+  website:
+    build:
+      # repo root: the site is built from the lessons that live next to website/
+      context: ..
+      dockerfile: website/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    image: db-modeling-website:latest
+    container_name: db-modeling-website
+    ports:
+      - "${PORT:-3000}:3000"
+    restart: unless-stopped

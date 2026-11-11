@@ -1,0 +1,16 @@
+# Used automatically with website/Dockerfile (context = repo root)
+**/node_modules
+**/.next
+**/.git
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pdf
+**/coverage
+**/.vscode
+**/.claude
+**/.husky
+**/.todo
+**/npm-debug.log*
+website/Dockerfile*
+website/docker-compose.yml

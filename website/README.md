@@ -206,11 +206,21 @@ Internal project docs live in `project-docs/` at the root with templates for:
 
 ## Docker
 
+The site is built from the lessons in the repo root, so the build context is `..` (set in `docker-compose.yml`).
+
 ```bash
-docker compose up
+# from website/
+docker compose up --build -d          # http://localhost:3000
+
+# set the public URL used in canonical links, sitemap and OG tags (build time)
+NEXT_PUBLIC_APP_URL=https://your-domain.com docker compose up --build -d
+
+# or plain docker, from the repo root
+docker build -f website/Dockerfile -t db-modeling-website .
+docker run -p 3000:3000 db-modeling-website
 ```
 
-> Dockerfile and docker-compose.yml are scaffolded — configure for your deployment target.
+> Lessons are prerendered at build time: rebuild the image after editing any markdown.
 
 ## License
 
