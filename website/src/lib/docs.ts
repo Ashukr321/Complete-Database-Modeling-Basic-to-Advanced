@@ -56,7 +56,7 @@ const plainText = (s: string) =>
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith(".") || SKIP_DIRS.has(entry.name)) continue;
-    const full = path.join(dir, entry.name);
+    const full = path.join(/*turbopackIgnore: true*/ dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
     else out.push(path.relative(CONTENT_ROOT, full).split(path.sep).join("/"));
   }
@@ -127,7 +127,9 @@ export function getNav() {
 }
 
 export function readFile(file: string): string {
-  return fs.readFileSync(path.join(CONTENT_ROOT, file), "utf8");
+  // turbopackIgnore: lessons are read only at build time (every page is prerendered),
+  // so the server bundle must not trace and ship the whole repo
+  return fs.readFileSync(path.join(/*turbopackIgnore: true*/ CONTENT_ROOT, file), "utf8");
 }
 
 export function getDocByHref(href: string): Doc | undefined {

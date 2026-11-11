@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Self-contained server bundle for the Docker image (.next/standalone/server.js)
-  output: "standalone",
+  // Standalone server bundle only for the Docker image (set in Dockerfile).
+  // Vercel packages the app itself and its build adapter fails with standalone.
+  output: process.env.NEXT_OUTPUT_STANDALONE === "true" ? "standalone" : undefined,
 
   // ✏️ Add your image domains here
   images: {

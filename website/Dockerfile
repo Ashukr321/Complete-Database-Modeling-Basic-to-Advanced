@@ -25,6 +25,7 @@ COPY --from=deps /repo/website/node_modules ./node_modules
 # Baked into canonical URLs, sitemap.xml and Open Graph tags at build time
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_OUTPUT_STANDALONE=true \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
