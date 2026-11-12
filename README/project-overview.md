@@ -8,6 +8,7 @@ This folder contains meta-documentation for the **Complete Database Modeling** p
 
 ### Phase 0: Start Here
 - [ ] [What is Data Modeling?](../Introduction/What-Is-Data-Modeling.md)
+- [ ] [Thinking Like a Data Modeler: From Requirements & UI to Schema](../Introduction/Workflow-Requirements-and-UI-to-Data-Model.md)
 
 ### Phase 1: Foundations
 - [ ] [One-to-One Relationships](file:///e:/Job%20switch/backend/Complete-Database-Modeling-Basic-to-Advanced/relationship/one_to_one/one-to-one.md)

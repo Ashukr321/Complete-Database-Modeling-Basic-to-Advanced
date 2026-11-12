@@ -191,9 +191,10 @@ flowchart TD
 
 ## 🗺️ Where to Go Next
 
-1.  **[One-to-One Relationships](../relationship/one_to_one/one-to-one.md)**: start with the building blocks.
-2.  **[ER Diagrams](../ER-Diagrams/README.md)**: learn to draw what you design.
-3.  **[Normalization vs Denormalization](../Normalization-vs-Denormalization/Normalization-vs-Denormalization.md)**: the core trade-off behind every model.
+1.  **[Thinking Like a Data Modeler](Workflow-Requirements-and-UI-to-Data-Model.md)**: the thought process to turn any requirement or UI into a schema.
+2.  **[One-to-One Relationships](../relationship/one_to_one/one-to-one.md)**: start with the building blocks.
+3.  **[ER Diagrams](../ER-Diagrams/README.md)**: learn to draw what you design.
+4.  **[Normalization vs Denormalization](../Normalization-vs-Denormalization/Normalization-vs-Denormalization.md)**: the core trade-off behind every model.
 
 ---
 

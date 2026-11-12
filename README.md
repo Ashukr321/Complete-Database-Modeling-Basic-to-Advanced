@@ -11,6 +11,7 @@ This repository is organized into specialized modules:
 ### 0. 🌱 Start Here: What is Data Modeling?
 What data modeling is, the problems it solves (redundancy, anomalies, slow queries) and why every backend engineer needs it.
 - **[What is Data Modeling?](Introduction/What-Is-Data-Modeling.md)**
+- **[Thinking Like a Data Modeler: From Requirements & UI to Schema](Introduction/Workflow-Requirements-and-UI-to-Data-Model.md)**: the step-by-step thought process, and how startup backend engineers model data from Figma screens.
 
 ### 1. 🔗 Relationships
 Detailed guides and implementations for all standard database relationships.
