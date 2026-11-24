@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useState } from "react";
 import { useTheme } from "next-themes";
+import DiagramFrame from "@/components/common/DiagramFrame";
+import ErLegend from "./ErLegend";
 
 const THEMES = {
   dark: {
@@ -38,6 +40,7 @@ export default function Mermaid({ chart, title }: { chart: string; title?: strin
   const { resolvedTheme } = useTheme();
   const [svg, setSvg] = useState("");
   const [failed, setFailed] = useState(false);
+  const isEr = chart.trimStart().startsWith("erDiagram");
 
   useEffect(() => {
     if (!resolvedTheme) return;
@@ -72,16 +75,11 @@ export default function Mermaid({ chart, title }: { chart: string; title?: strin
   }
 
   return (
-    <figure
-      role="img"
-      aria-label={title ?? "Diagram"}
-      className="my-6 flex min-h-40 items-center justify-center overflow-x-auto rounded-xl border bg-card p-4 [&_svg]:h-auto [&_svg]:max-w-full"
-    >
-      {svg ? (
-        <div dangerouslySetInnerHTML={{ __html: svg }} />
-      ) : (
-        <div className="h-32 w-full animate-pulse rounded-lg bg-muted" />
-      )}
-    </figure>
+    <DiagramFrame
+      svg={svg}
+      title={title ?? (isEr ? "ER diagram" : "Diagram")}
+      legend={isEr ? <ErLegend /> : undefined}
+      background={THEMES[resolvedTheme === "dark" ? "dark" : "light"].background}
+    />
   );
 }

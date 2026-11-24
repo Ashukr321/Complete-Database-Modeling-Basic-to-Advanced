@@ -14,8 +14,11 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       </a>
       <SiteHeader nav={nav} />
       <div className="flex">
-        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-72 shrink-0 overflow-y-auto border-r bg-card px-3 py-6 lg:block">
-          <SidebarNav nav={nav} />
+        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-72 shrink-0 overflow-x-hidden overflow-y-auto border-r bg-card transition-[width,visibility] duration-300 lg:block [[data-sidebar=closed]_&]:invisible [[data-sidebar=closed]_&]:w-0 [[data-sidebar=closed]_&]:border-r-0">
+          {/* fixed-width inner wrapper so links don't reflow while width animates */}
+          <div className="w-72 px-3 py-6">
+            <SidebarNav nav={nav} />
+          </div>
         </aside>
         <main id="main" className="min-w-0 flex-1">
           {children}

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 import SidebarNav, { type NavGroup } from "./SidebarNav";
+import SearchPalette, { toggleSidebar } from "./SearchPalette";
 
 const GITHUB = "https://github.com/Ashukr321/Complete-Database-Modeling-Basic-to-Advanced";
 
@@ -42,9 +43,21 @@ export default function SiteHeader({ nav }: { nav: NavGroup[] }) {
           </SheetContent>
         </Sheet>
 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden lg:inline-flex"
+          onClick={toggleSidebar}
+          aria-label="Toggle sidebar"
+          title="Toggle sidebar (Ctrl+B or Shift+/)"
+        >
+          <PanelLeft />
+        </Button>
+
         <Logo />
 
         <div className="ml-auto flex items-center gap-2">
+          <SearchPalette nav={nav} />
           <a
             href={GITHUB}
             target="_blank"

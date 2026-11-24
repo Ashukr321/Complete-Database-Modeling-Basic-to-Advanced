@@ -30,6 +30,7 @@ export const GROUPS: { key: string; label: string; icon: string }[] = [
   { key: "Data-Validation", label: "Data Validation", icon: "🛡️" },
   { key: "Common-Data-Modeling-Mistakes", label: "Common Mistakes", icon: "🚫" },
   { key: "Data-Modeling-Tools", label: "Tooling", icon: "🛠️" },
+  { key: "projects/blog-application", label: "Project: Blog App", icon: "📝" },
 ];
 
 export type Doc = {
