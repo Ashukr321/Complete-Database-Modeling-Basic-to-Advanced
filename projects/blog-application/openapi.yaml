@@ -1,0 +1,706 @@
+openapi: 3.1.0
+info:
+  title: Blog Application API
+  version: 1.0.0
+  description: |
+    REST API for the blog data model (users, profiles, posts, comments, reactions, shares).
+    Versioned in the URL (`/api/v1`). Non-breaking changes bump the minor version;
+    breaking changes ship as `/api/v2`. See api-design.md for the full design notes.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local
+  - url: https://api.example.com/api/v1
+    description: Production
+tags:
+  - name: Auth
+  - name: Profiles
+  - name: Posts
+  - name: Reactions
+  - name: Comments
+  - name: Shares
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      operationId: register
+      summary: Create an account (users + profiles in one transaction)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in and get an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /me/profile:
+    get:
+      tags: [Profiles]
+      operationId: getMyProfile
+      summary: My profile (includes email)
+      responses:
+        '200':
+          description: My profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/MyProfile' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+    patch:
+      tags: [Profiles]
+      operationId: updateMyProfile
+      summary: Edit my display name, avatar or bio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileRequest' }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/MyProfile' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /profiles/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Profiles]
+      operationId: getProfile
+      summary: Public profile of any user (no email)
+      security: []
+      responses:
+        '200':
+          description: The profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/PublicProfile' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /profiles/{userId}/posts:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Profiles]
+      operationId: listProfilePosts
+      summary: Published posts by this author, newest first
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of posts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /posts:
+    get:
+      tags: [Posts]
+      operationId: listPosts
+      summary: Paginated list of published posts, newest first
+      description: Public. Send a token to get `myReaction` filled in.
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of posts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Posts]
+      operationId: createPost
+      summary: Create a post (author comes from the token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePostRequest' }
+      responses:
+        '201':
+          description: Post created
+          headers:
+            Location:
+              schema: { type: string, example: /api/v1/posts/by-slug/my-first-post }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /posts/by-slug/{slug}:
+    get:
+      tags: [Posts]
+      operationId: getPostBySlug
+      summary: Post detail (increments view_count)
+      description: Drafts return 404 to everyone except their author.
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, example: my-first-post }
+      responses:
+        '200':
+          description: The post
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /posts/{postId}:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    patch:
+      tags: [Posts]
+      operationId: updatePost
+      summary: Update own post (creator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePostRequest' }
+      responses:
+        '200':
+          description: Updated post
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Posts]
+      operationId: deletePost
+      summary: Delete own post (creator only; cascades reactions, comments, shares)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /posts/{postId}/reaction:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    put:
+      tags: [Reactions]
+      operationId: setReaction
+      summary: Like or dislike a post, or switch between them (idempotent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReactionRequest' }
+      responses:
+        '200':
+          description: Current reaction state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReactionResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Reactions]
+      operationId: removeReaction
+      summary: Remove my like or dislike (idempotent)
+      responses:
+        '200':
+          description: Current reaction state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReactionResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /posts/{postId}/comments:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    get:
+      tags: [Comments]
+      operationId: listComments
+      summary: Paginated comments on a post, oldest first
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Comments]
+      operationId: addComment
+      summary: Add a comment or a reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCommentRequest' }
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/CommentId'
+    patch:
+      tags: [Comments]
+      operationId: updateComment
+      summary: Edit own comment (comment author only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCommentRequest' }
+      responses:
+        '200':
+          description: Updated comment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Comments]
+      operationId: deleteComment
+      summary: Soft-delete own comment (comment author only)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /posts/{postId}/shares:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    post:
+      tags: [Shares]
+      operationId: sharePost
+      summary: Record a share (not idempotent; each call is one share)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShareRequest' }
+      responses:
+        '201':
+          description: Share recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShareResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque `meta.nextCursor` from the previous page. Omit for the first page.
+      schema: { type: string }
+
+  responses:
+    ValidationError:
+      description: Body or query failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: title is required
+              details: [{ field: title, issue: required }]
+    Unauthenticated:
+      description: Missing, invalid or expired token (frontend shows the login popup)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: UNAUTHENTICATED, message: Login required } }
+    Forbidden:
+      description: Logged in but not the creator
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: FORBIDDEN, message: Only the creator can do this } }
+    NotFound:
+      description: Resource does not exist
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: NOT_FOUND, message: Post not found } }
+    Conflict:
+      description: Unique value already taken
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: CONFLICT, message: Email already registered } }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: RATE_LIMITED, message: Try again later } }
+
+  schemas:
+    Id:
+      type: string
+      pattern: '^[0-9]+$'
+      description: bigint sent as a string
+      example: '42'
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, CONFLICT, RATE_LIMITED, INTERNAL_ERROR]
+            message: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  issue: { type: string }
+
+    PageMeta:
+      type: object
+      required: [limit, nextCursor]
+      properties:
+        limit: { type: integer, example: 20 }
+        nextCursor: { type: [string, 'null'], description: null on the last page }
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, minLength: 8, maxLength: 128, writeOnly: true }
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, writeOnly: true }
+
+    User:
+      type: object
+      required: [id, email, displayName, avatarUrl]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'], format: uri }
+
+    Author:
+      type: object
+      required: [id, displayName, avatarUrl]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'], format: uri }
+
+    PublicProfile:
+      type: object
+      required: [userId, displayName, avatarUrl, bio, joinedAt]
+      properties:
+        userId: { $ref: '#/components/schemas/Id' }
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'], format: uri }
+        bio: { type: [string, 'null'] }
+        joinedAt: { type: string, format: date-time }
+
+    MyProfile:
+      allOf:
+        - $ref: '#/components/schemas/PublicProfile'
+        - type: object
+          required: [email]
+          properties:
+            email: { type: string, format: email }
+
+    UpdateProfileRequest:
+      type: object
+      minProperties: 1
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        avatarUrl: { type: [string, 'null'], format: uri, pattern: '^https://' }
+        bio: { type: [string, 'null'], maxLength: 300 }
+
+    AuthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [user, accessToken, expiresIn]
+          properties:
+            user: { $ref: '#/components/schemas/User' }
+            accessToken: { type: string }
+            expiresIn: { type: integer, description: seconds, example: 3600 }
+
+    Counts:
+      type: object
+      required: [likes, dislikes, comments, shares, views]
+      properties:
+        likes: { type: integer, minimum: 0 }
+        dislikes: { type: integer, minimum: 0 }
+        comments: { type: integer, minimum: 0 }
+        shares: { type: integer, minimum: 0 }
+        views: { type: integer, minimum: 0 }
+
+    PostSummary:
+      type: object
+      required: [id, title, slug, excerpt, author, counts, myReaction, publishedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        title: { type: string }
+        slug: { type: string }
+        excerpt: { type: [string, 'null'] }
+        author: { $ref: '#/components/schemas/Author' }
+        counts: { $ref: '#/components/schemas/Counts' }
+        myReaction:
+          description: Always null for guests
+          oneOf:
+            - $ref: '#/components/schemas/ReactionType'
+            - type: 'null'
+        publishedAt: { type: [string, 'null'], format: date-time }
+
+    PostPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/PostSummary' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+
+    Post:
+      allOf:
+        - $ref: '#/components/schemas/PostSummary'
+        - type: object
+          required: [content, status, createdAt, updatedAt]
+          properties:
+            content: { type: string }
+            status: { $ref: '#/components/schemas/PostStatus' }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    PostEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Post' }
+
+    PostStatus:
+      type: string
+      enum: [draft, published]
+
+    CreatePostRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1 }
+        excerpt: { type: string, maxLength: 300 }
+        status:
+          allOf: [{ $ref: '#/components/schemas/PostStatus' }]
+          default: draft
+
+    UpdatePostRequest:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1 }
+        excerpt: { type: string, maxLength: 300 }
+        status: { $ref: '#/components/schemas/PostStatus' }
+
+    ReactionType:
+      type: string
+      enum: [like, dislike]
+
+    ReactionRequest:
+      type: object
+      required: [type]
+      properties:
+        type: { $ref: '#/components/schemas/ReactionType' }
+
+    ReactionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [myReaction, likeCount, dislikeCount]
+          properties:
+            myReaction:
+              oneOf:
+                - $ref: '#/components/schemas/ReactionType'
+                - type: 'null'
+            likeCount: { type: integer, minimum: 0 }
+            dislikeCount: { type: integer, minimum: 0 }
+
+    Comment:
+      type: object
+      required: [id, body, parentId, author, createdAt, updatedAt, isDeleted]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        body: { type: [string, 'null'], description: null when isDeleted }
+        parentId:
+          oneOf:
+            - $ref: '#/components/schemas/Id'
+            - type: 'null'
+        author: { $ref: '#/components/schemas/Author' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        isDeleted: { type: boolean }
+
+    CommentEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Comment' }
+
+    CreateCommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 2000 }
+        parentId:
+          description: Reply to this comment; must belong to the same post
+          oneOf:
+            - $ref: '#/components/schemas/Id'
+            - type: 'null'
+
+    UpdateCommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 2000 }
+
+    ShareRequest:
+      type: object
+      required: [platform]
+      properties:
+        platform:
+          type: string
+          enum: [whatsapp, x, facebook, linkedin, link]
+
+    ShareResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [shareCount, shareUrl]
+          properties:
+            shareCount: { type: integer, minimum: 0 }
+            shareUrl: { type: string, format: uri }

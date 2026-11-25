@@ -68,7 +68,7 @@ So **user ↔ post is many-to-many twice**: once through likes, once through com
 ### 3.2 One like per user per post
 
 Without a rule a user can like the same post 100 times.
-Add `UNIQUE (user_id, post_id)` on `likes`. Unlike = delete the row.
+Add `UNIQUE (user_id, post_id)` on `likes`. Unlike = delete the row. (Section 3.8 turns `likes` into `reactions` to also support dislike.)
 
 ### 3.3 Shares need their own table
 
@@ -86,9 +86,9 @@ Add a `post_views` table later only if you need unique views or analytics.
 The list page shows likes, comments, views and shares for **every post on every page**.
 Counting rows each time (`COUNT(*)` over likes for 20 posts) is slow at scale, so store:
 
-`like_count`, `comment_count`, `share_count`, `view_count` on `posts`
+`like_count`, `dislike_count`, `comment_count`, `share_count`, `view_count` on `posts`
 
-and update them in the **same transaction** as the insert/delete in `likes`, `comments` or `shares`.
+and update them in the **same transaction** as the insert/update/delete in `reactions` (see 3.8), `comments` or `shares`.
 
 ### 3.6 Columns the screens need
 
@@ -106,7 +106,26 @@ and update them in the **same transaction** as the insert/delete in `likes`, `co
 
 - **Replies to comments**: `comments.parent_id` → `comments.id` (self-reference).
 - **Tags / categories**: `tags` + `post_tags` (many-to-many).
-- **Bookmarks**: same shape as `likes`.
+- **Bookmarks**: same shape as `reactions`, without the `type` column.
+
+### 3.8 Dislike: one `reactions` table, not a second `dislikes` table
+
+**Unlike** (taking back a like) needs no table: delete the row.
+**Dislike** (a 👎 that is counted) does need storage. Two options:
+
+| Option | Problem |
+| --- | --- |
+| `likes` + a separate `dislikes` table | One user could have a row in **both** for the same post. No single UNIQUE key can stop that, so the app has to check two tables, and a race can still slip through. Switching 👍 → 👎 is a delete in one table plus an insert in another. |
+| ✅ One `reactions` table with `type` (`like` / `dislike`) | `UNIQUE (user_id, post_id)` guarantees **at most one reaction per user per post**. Switching is a one-row `UPDATE`. Adding ❤️ or 😂 later is a new enum value, not a new table. |
+
+So `likes` is renamed to **`reactions`** and gains a `type` column. `posts` gets `dislike_count` next to `like_count`.
+
+| User action | Row in `reactions` | Counters on `posts` |
+| --- | --- | --- |
+| Like (no reaction yet) | INSERT `type = 'like'` | `like_count + 1` |
+| Dislike (no reaction yet) | INSERT `type = 'dislike'` | `dislike_count + 1` |
+| Switch like → dislike | UPDATE `type = 'dislike'` | `like_count - 1`, `dislike_count + 1` |
+| Remove reaction (unlike / undislike) | DELETE | the matching counter `- 1` |
 
 ## 4. Complete ER diagram
 
@@ -115,10 +134,10 @@ erDiagram
   USERS ||--|| PROFILES : "has one (1:1)"
   USERS ||--o{ POSTS : "writes (1:N)"
   USERS ||--o{ COMMENTS : "writes (1:N)"
-  USERS ||--o{ LIKES : "gives (1:N)"
+  USERS ||--o{ REACTIONS : "gives (1:N)"
   USERS ||--o{ SHARES : "makes (1:N)"
   POSTS ||--o{ COMMENTS : "has (1:N)"
-  POSTS ||--o{ LIKES : "receives (1:N)"
+  POSTS ||--o{ REACTIONS : "receives (1:N)"
   POSTS ||--o{ SHARES : "receives (1:N)"
   COMMENTS |o--o{ COMMENTS : "reply to (0..1:N)"
 
@@ -144,6 +163,7 @@ erDiagram
     text content
     string status "draft | published"
     int like_count "cached"
+    int dislike_count "cached"
     int comment_count "cached"
     int share_count "cached"
     int view_count "cached"
@@ -161,11 +181,13 @@ erDiagram
     datetime updated_at
     datetime deleted_at "nullable"
   }
-  LIKES {
+  REACTIONS {
     bigint id PK
     bigint post_id FK
     bigint user_id FK
+    string type "like | dislike"
     datetime created_at
+    datetime updated_at
   }
   SHARES {
     bigint id PK
@@ -176,7 +198,7 @@ erDiagram
   }
 ```
 
-> `LIKES` has `UNIQUE (user_id, post_id)`. `PROFILES.user_id` is `UNIQUE`, which is what makes user ↔ profile one-to-one.
+> `REACTIONS` has `UNIQUE (user_id, post_id)`: one reaction (like **or** dislike) per user per post. `PROFILES.user_id` is `UNIQUE`, which is what makes user ↔ profile one-to-one.
 
 ### How to read this diagram
 
@@ -193,10 +215,10 @@ A label is only a **human-readable verb** for the relationship. It does not crea
 | **has one** | `USERS \|\|--\|\| PROFILES` | A user has exactly one profile. | `profiles.user_id` (UNIQUE) |
 | **writes** | `USERS \|\|--o{ POSTS` | A user writes zero or many posts. | `posts.author_id` |
 | **writes** | `USERS \|\|--o{ COMMENTS` | A user writes zero or many comments. | `comments.user_id` |
-| **gives** | `USERS \|\|--o{ LIKES` | A user gives zero or many likes. | `likes.user_id` |
+| **gives** | `USERS \|\|--o{ REACTIONS` | A user gives zero or many reactions. | `reactions.user_id` |
 | **makes** | `USERS \|\|--o{ SHARES` | A user makes zero or many shares. | `shares.user_id` |
 | **has** | `POSTS \|\|--o{ COMMENTS` | A post has zero or many comments. | `comments.post_id` |
-| **receives** | `POSTS \|\|--o{ LIKES` / `SHARES` | A post receives zero or many likes / shares. | `likes.post_id`, `shares.post_id` |
+| **receives** | `POSTS \|\|--o{ REACTIONS` / `SHARES` | A post receives zero or many reactions / shares. | `reactions.post_id`, `shares.post_id` |
 | **reply to** | `COMMENTS \|o--o{ COMMENTS` | A comment can be a reply to one parent comment, and can have many replies. | `comments.parent_id` (nullable) |
 
 The same label can repeat (`writes` twice). Read it from the other side too: "a post is **written by** exactly one user".
@@ -205,7 +227,7 @@ The same label can repeat (`writes` twice). Read it from the other side too: "a 
 
 | Term | Meaning | In this project |
 | --- | --- | --- |
-| **Entity** | A thing you store data about. Becomes a table (or collection). | `users`, `posts`, `likes` |
+| **Entity** | A thing you store data about. Becomes a table (or collection). | `users`, `posts`, `reactions` |
 | **Attribute** | A property of an entity. Becomes a column (or field). | `posts.title` |
 | **PK** (primary key) | Column that uniquely identifies each row. | `id` in every table |
 | **FK** (foreign key) | Column that points to another table's PK. This is what creates a relationship. | `posts.author_id` → `users.id` |
@@ -215,9 +237,9 @@ The same label can repeat (`writes` twice). Read it from the other side too: "a 
 | **One-to-one** (1:1) | One row on each side, at most. | user ↔ profile |
 | **One-to-many** (1:N) | One row on the left, many on the right. FK sits on the "many" side. | post → comments |
 | **Many-to-one** (N:1) | The same as 1:N, read from the other side. | comments → post |
-| **Many-to-many** (M:N) | Many on both sides. Always needs a junction table in SQL. | users ↔ posts (through likes) |
-| **Junction table** (join / bridge / associative table) | A table whose rows link two other tables. Can carry its own data. | `likes`, `comments`, `shares` |
-| **Composite unique key** | Uniqueness over a combination of columns. | `UNIQUE (user_id, post_id)` on `likes` |
+| **Many-to-many** (M:N) | Many on both sides. Always needs a junction table in SQL. | users ↔ posts (through reactions) |
+| **Junction table** (join / bridge / associative table) | A table whose rows link two other tables. Can carry its own data. | `reactions`, `comments`, `shares` |
+| **Composite unique key** | Uniqueness over a combination of columns. | `UNIQUE (user_id, post_id)` on `reactions` |
 | **Self-referencing relationship** | A table with an FK to itself. | `comments.parent_id` → `comments.id` |
 | **Identifying vs non-identifying** | Solid line (`--`) means the child's identity depends on the parent. Dashed line (`..`) means it does not. | All lines here are solid. |
 | **Nullable** | The column may be empty, which makes that side optional. | `comments.parent_id`, `deleted_at` |
@@ -233,11 +255,11 @@ The same label can repeat (`writes` twice). Read it from the other side too: "a 
 | users | posts | one-to-many | `posts.author_id` |
 | posts | comments | one-to-many | `comments.post_id` |
 | users | comments | one-to-many | `comments.user_id` |
-| posts | likes | one-to-many | `likes.post_id` |
-| users | likes | one-to-many | `likes.user_id` |
+| posts | reactions | one-to-many | `reactions.post_id` |
+| users | reactions | one-to-many | `reactions.user_id` |
 | posts | shares | one-to-many | `shares.post_id` |
 | users | shares | one-to-many | `shares.user_id` |
-| users ↔ posts | | many-to-many | through `likes`, `comments`, `shares` |
+| users ↔ posts | | many-to-many | through `reactions`, `comments`, `shares` |
 | comments | comments | one-to-many (optional) | `comments.parent_id` |
 
 ## 6. Screen → table map
@@ -246,11 +268,12 @@ The same label can repeat (`writes` twice). Read it from the other side too: "a 
 flowchart LR
   G(["Guest"]) --> L["Blog list<br/>posts + profiles<br/>paginated"]
   L --> D["Post detail<br/>posts + comments<br/>view_count + 1"]
-  D -- "like / comment / share" --> P{"Logged in?"}
+  L -- "author name" --> PR["Profile page<br/>profiles + posts"]
+  D -- "like / dislike / comment / share" --> P{"Logged in?"}
   P -- No --> A["Login popup<br/>users"]
   A -- "sign up" --> U["users + profiles<br/>created together"]
   U --> P
-  P -- Yes --> W["Write likes / comments / shares<br/>+ update post counters"]
+  P -- Yes --> W["Write reactions / comments / shares<br/>+ update post counters"]
   P -- Yes --> C["Create Post menu<br/>insert posts"]
 ```
 
@@ -258,7 +281,7 @@ flowchart LR
 
 ```sql
 -- List page: newest published posts with author (keyset pagination)
-SELECT p.id, p.title, p.slug, p.excerpt, p.like_count, p.comment_count,
+SELECT p.id, p.title, p.slug, p.excerpt, p.like_count, p.dislike_count, p.comment_count,
        p.share_count, p.view_count, p.published_at,
        pr.display_name, pr.avatar_url
 FROM posts p
@@ -268,7 +291,16 @@ WHERE p.status = 'published'
 ORDER BY p.published_at DESC, p.id DESC
 LIMIT 20;
 
--- Like a post (one transaction)
-INSERT INTO likes (post_id, user_id) VALUES (:post_id, :user_id);
+-- Like a post (one transaction). Read my current reaction first so the right counters move.
+SELECT type FROM reactions WHERE post_id = :post_id AND user_id = :user_id FOR UPDATE;
+
+-- no row yet → insert (if two requests race, UNIQUE (user_id, post_id) rejects one: retry it)
+INSERT INTO reactions (post_id, user_id, type) VALUES (:post_id, :user_id, 'like');
 UPDATE posts SET like_count = like_count + 1 WHERE id = :post_id;
+
+-- row was 'dislike' → switch it
+UPDATE reactions SET type = 'like', updated_at = now() WHERE post_id = :post_id AND user_id = :user_id;
+UPDATE posts SET like_count = like_count + 1, dislike_count = dislike_count - 1 WHERE id = :post_id;
+
+-- row was already 'like' → do nothing (liking twice is still one like)
 ```

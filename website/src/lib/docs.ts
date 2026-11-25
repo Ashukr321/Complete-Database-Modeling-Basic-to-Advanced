@@ -88,7 +88,8 @@ function sortKey(doc: Doc): string {
 let cache: Doc[] | null = null;
 
 export function getDocs(): Doc[] {
-  if (cache) return cache;
+  // dev re-reads so new or renamed lessons show up without restarting the server
+  if (cache && process.env.NODE_ENV === "production") return cache;
   const files = walk(CONTENT_ROOT).filter((f) => {
     const ext = path.posix.extname(f);
     return f.includes("/") && (ext === ".md" || ext in CODE_EXT);
@@ -96,7 +97,8 @@ export function getDocs(): Doc[] {
   const docs = files.map((file): Doc => {
     const ext = path.posix.extname(file);
     const lang = CODE_EXT[ext];
-    let title = path.posix.basename(file);
+    // markdown without an h1 falls back to a readable name: "api-design.md" → "api design"
+    let title = lang ? path.posix.basename(file) : path.posix.basename(file, ext).replace(/[-_]+/g, " ");
     if (!lang) {
       const h1 = readFile(file).match(/^#\s+(.+)$/m)?.[1];
       if (h1) title = stripEmoji(plainText(h1));

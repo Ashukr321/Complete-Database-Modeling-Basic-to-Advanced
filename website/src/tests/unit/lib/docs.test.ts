@@ -58,4 +58,12 @@ describe("getDocs (real repo content)", () => {
     expect(new Set(all.map((d) => d.href)).size).toBe(all.length);
     expect(all.some((d) => d.file.startsWith("website/"))).toBe(false);
   });
+
+  it("never shows a .md extension as a sidebar title", () => {
+    const all = getDocs();
+    expect(all.filter((d) => !d.lang && d.title.endsWith(".md"))).toEqual([]);
+    expect(all.find((d) => d.file === "projects/blog-application/api-design.md")?.title).toBe(
+      "Blog Application: API Design",
+    );
+  });
 });
